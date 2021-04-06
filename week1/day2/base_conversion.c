@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
+#include <unistd.h>
 
 #define MAX_INT_BITS 31
 #define MAX_UNSIGNED_INT 2147483647
@@ -9,6 +11,33 @@
 #define BOOL int
 #define TRUE 1
 #define FALSE 0
+#define LEN(arr) ((int) (sizeof (arr) / sizeof (arr)[0]))
+
+/**
+ * Reverse a string
+ * 
+ * @param str string to reverse
+ * @return reversed string
+*/
+char* strrev(char* str)
+{
+    if (!str || ! *str)
+        return str;
+
+    int i = strlen(str) - 1, j = 0;
+
+    char ch;
+    while (i > j)
+    {
+        ch = str[i];
+        str[i] = str[j];
+        str[j] = ch;
+        i--;
+        j++;
+    }
+    return str;
+}
+
 
 /**
  * Function: decimal_to_binary
@@ -116,7 +145,7 @@ double binary_to_decimal(const char* bin_str)
 void binary_to_decimal_conversion()
 {
     double dec = 0;
-    char* bin_str = (char *)malloc(sizeof(char) * MAX_INT_BITS);
+    char* bin_str = (char *) malloc(sizeof(char) * MAX_INT_BITS);
 
     if (bin_str == NULL)
     {
@@ -139,49 +168,186 @@ void binary_to_decimal_conversion()
 */
 char* decimal_to_hex(int value)
 {
-    char* result = (char *) calloc(MAX_HEX_LEN, sizeof(char));
-    result[MAX_HEX_LEN - 1] = '\0';
+    char* result = (char *) malloc(MAX_HEX_LEN * sizeof(char));
 
-    int remainder = 0;
+    if (result == NULL) {
+        fprintf(stderr, "%s", "Out of memory!\n");
+        exit(EXIT_FAILURE);
+    }
 
-    for (int i = MAX_HEX_LEN - 2; value != 0 && i >= 0; i--) {
+    int i, remainder = 0;
+
+    for (i = 0; value > 0 && i < MAX_HEX_LEN - 1; i++) {
         remainder = value % 16;
         if (remainder < 10) {
             result[i] = (char) remainder + 48;  // to digital character
         } else {
             result[i] = (char) remainder + 55; // to alphabetic character
         }
-        puts(result);
         value /= 16;
+    }
+
+    result[i] = '\0';
+
+    return strrev(result);
+}
+
+
+/**
+ * Function: binary_to_decimal_conversion
+ * Provides an interactive menu for converting binary value to decimal value
+*/
+void decimal_to_hex_conversion()
+{
+    unsigned int value = 0;
+    char* hex = NULL;
+
+    printf("Please enter a decimal number: ");
+
+    scanf("%d", &value);
+    hex = decimal_to_hex(value);
+
+    printf("The hex form of value %d is %s\n", value, hex);
+
+    free(hex);
+}
+
+/**
+ * Function: binary_to_decimal
+ * Convert a binary string to decimal
+ *
+ * @param hex_str the binary string to be converted
+ * @return converted decimal
+*/
+double hex_to_decimal(const char* hex_str)
+{
+    int str_length = strlen(hex_str);
+    double result = 0, p = 0, digit = 0;
+    const double base = 16;
+
+    for (int i = str_length - 2; hex_str[i] != '\n' && hex_str[i] != '\0' && i >= 0; i--) {
+        if (isdigit(hex_str[i])) {
+            digit = (double) (hex_str[i] - 48);
+            result += digit * pow(base, p++);
+        } else if (hex_str[i] >= 'a' && hex_str[i] <= 'f') {
+            digit = (double) (hex_str[i] - 'a' + 10);
+            result += digit * pow(base, p++);
+        } else if (hex_str[i] >= 'A' && hex_str[i] <= 'F') {
+            digit = (double) (hex_str[i] - 'A' + 10);
+            result += digit * pow(base, p++);
+        } else {
+            printf("Encountered non-hex character: %c @ location %d!", hex_str[i], i);
+            exit(EXIT_FAILURE);
+        }
     }
 
     return result;
 }
 
+
 /**
- * Function: format_bin_str
- * Truncates extra zeros before the highest bit
- *
- * @param bin_str
- * @return formatted binary string
+ * Hexadecimal to decimal conversion
+ * 
 */
-char* format_hex_str(char *hex_str)
+void hex_to_decimal_conversion()
 {
-    while (hex_str != NULL && *hex_str == 0 && *hex_str != '\0') {
-        hex_str++;
+    char* hex_str = (char*) malloc(sizeof(char) * MAX_HEX_LEN);
+    double dec = 0;
+
+    if (hex_str == NULL) {
+        printf("Out of memory");
+        exit(EXIT_FAILURE);
     }
-    return hex_str;
+
+    printf("Please enter a hex value: ");
+    fgets(hex_str, MAX_HEX_LEN, stdin);
+    dec = hex_to_decimal(hex_str);
+    printf("The decimal form is %.20g\n", dec);
+
+    free(hex_str);
 }
+
+/*
+* A wrapper function that helps menu function staying in a loop until the given exit character is entered.
+*/
+void run_forever(void (*func)(), char exit_char)
+{
+    char c;
+
+    while (c != exit_char) {
+        func();
+        usleep(100);
+
+        // clear the screen
+        printf("\e[1;1H\e[2J");
+        
+        usleep(100);
+    }
+}
+
+/**
+ * Main menu
+ * 
+*/
+void base_conversion()
+{
+    const char* menu[10] = {
+        "Welcome to this base conversion utility!",
+        "Please select an option to continue...",
+        "(1) Decimal to binary",
+        "(2) Binary to decimal",
+        "(3) Decimal to hexadecimal",
+        "(4) Hexadecimal to decimal",
+        "",
+        "Press Ctrl+C or x to quit",
+        "",
+        "Your choice (1, 2, 3, 4): "
+    };
+    char user_option[512];
+
+    for (int i = 0; i < LEN(menu); i++) {
+        printf("%s\n", menu[i]);
+    }
+
+    scanf("%s", user_option);
+    printf("Your choice is %s\n", user_option);
+
+    switch (user_option[0]) {
+        case '1': {
+            run_forever(&decimal_to_binary_conversion, 'r');
+            break;
+        }
+
+        case '2': {
+            run_forever(&binary_to_decimal_conversion, 'r');
+            break;
+        }
+        
+        case '3':{
+            run_forever(&decimal_to_hex_conversion, 'r');
+            break;
+        }
+
+        case '4': {
+            run_forever(&hex_to_decimal_conversion, 'r');
+            break;
+        }
+            
+        case 'x': {
+            printf("Exit");
+            exit(0);
+        }
+            
+        
+        default:
+            printf("Unrecognized option: %s\nPlease try again.\n", user_option);
+    }
+}
+
+
 
 int main(int argc, char **argv)
 {
-    int value = 255;
-    char* hex = NULL;
-
-    hex = decimal_to_hex(value);
-
-    printf("The hex form of value %d is %c\n", value, hex[97]);
-
-    free(hex);
+    run_forever(&base_conversion, 'x');
     return 0;
 }
