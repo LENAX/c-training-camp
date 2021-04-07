@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
+#include <getopt.h>
 
 #define MAX_INT_BITS 31
 #define MAX_UNSIGNED_INT 2147483647
@@ -122,13 +122,16 @@ double binary_to_decimal(const char* bin_str)
     const double base = 2;
 
     for (int i = str_length - 2; bin_str != NULL && i >= 0; i--) {
-        if (bin_str[i] == ' ' && (str_length - i) % 5 == 0)
-            p--;
+        if (bin_str[i] == ' ') {
+            if ((str_length - i) % 5 == 0)
+                p--;
+            continue;
+        }
 
         if (bin_str[i] - '0' == 1) {
-            result += pow(base, p++);
-        } else if (bin_str[i] - '0' == 0 || bin_str[i] == ' ' || bin_str[i] == '\n') {
-            result += 0;
+            result += 1*pow(base, p++);
+        } else if (bin_str[i] - '0' == 0 || bin_str[i] == '\n') {
+            p++;
         } else {
             printf("Encountered non-binary character: %c @ location %d!", bin_str[i], i);
             exit(EXIT_FAILURE);
@@ -280,7 +283,7 @@ void run_forever(void (*func)(), char exit_char)
 
         // clear the screen
         printf("\e[1;1H\e[2J");
-        
+
         usleep(100);
     }
 }
@@ -322,7 +325,7 @@ void base_conversion()
             run_forever(&binary_to_decimal_conversion, 'r');
             break;
         }
-        
+
         case '3':{
             run_forever(&decimal_to_hex_conversion, 'r');
             break;
@@ -332,22 +335,88 @@ void base_conversion()
             run_forever(&hex_to_decimal_conversion, 'r');
             break;
         }
-            
+
         case 'x': {
             printf("Exit");
             exit(0);
         }
-            
-        
+
         default:
             printf("Unrecognized option: %s\nPlease try again.\n", user_option);
     }
 }
 
 
-
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
-    run_forever(&base_conversion, 'x');
-    return 0;
+    int c;
+
+    while (1)
+    {
+        static struct option long_options[] =
+            {
+                /* These options don’t set a flag.
+                   We distinguish them by their indices. */
+                {"bin2dec", no_argument, 0, 'b'},
+                {"dec2bin", no_argument, 0, 'd'},
+                {"dec2hex", no_argument, 0, 'h'},
+                {"hex2dec", no_argument, 0, 'x'},
+                {0, 0, 0, 0}};
+        /* getopt_long stores the option index here. */
+        int option_index = 0;
+
+        c = getopt_long_only(argc, argv, "bdhx",
+                             long_options, &option_index);
+
+        /* Detect the end of the options. */
+        if (c == -1)
+            break;
+
+        switch (c)
+        {
+        case 0:
+            /* If this option set a flag, do nothing else now. */
+            if (long_options[option_index].flag != 0)
+                break;
+            printf("option %s", long_options[option_index].name);
+            if (optarg)
+                printf(" with arg %s", optarg);
+            printf("\n");
+            break;
+
+        case 'b':
+            decimal_to_binary_conversion();
+            break;
+
+        case 'd':
+            binary_to_decimal_conversion();
+            break;
+
+        case 'h':
+            decimal_to_hex_conversion();
+            break;
+
+        case 'x':
+            hex_to_decimal_conversion();
+            break;
+
+        case '?':
+            /* getopt_long already printed an error message. */
+            break;
+
+        default:
+            abort();
+        }
+    }
+
+    /* Print any remaining command line arguments (not options). */
+    if (optind < argc)
+    {
+        printf("non-option ARGV-elements: ");
+        while (optind < argc)
+            printf("%s ", argv[optind++]);
+        putchar('\n');
+    }
+
+    exit(0);
 }
