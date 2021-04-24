@@ -16,22 +16,26 @@ char* strip_space(char *line)
 {
     char* striped = new_string(strlen(line));
     char* s = line, *striped_ptr = striped;
-    bool first_space = false;
 
     while (*s == ' ' && *s != '\0') {
         s++;
     }
 
     if (*s == '\0') {
-        realloc(striped, sizeof(char));
-        *striped = "\0";
+        striped = (char *) realloc(striped, sizeof(char));
+        *striped = '\0';
         return striped;
     }
 
     while (*s != '\0') {
-        
+        if (!isspace(*s) || !isspace(*(s-1))) {
+            *(striped_ptr++) = *(s++);
+        } else {
+            s++;
+        }
     }
 
+    return striped;
 }
 
 
@@ -41,7 +45,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         printf("Usage: str_process /dir/to/test_file.txt\n");
-        test_file = fopen("/Users/stevelan/Desktop/c_training/assignments/week2/day5/test_data/strip_space.txt", "r");
+        test_file = fopen("./test_data/escape_space.txt", "r");
     }
     else
     {
