@@ -5,8 +5,6 @@
 #include <ctype.h>
 #include <assert.h>
 
-// #define MAX_BUFFER_SIZE 2048
-
 char* new_string(size_t len)
 {
     char *str = (char *)malloc((len+1) * sizeof(char));
